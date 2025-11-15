@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Email Tools Futuristic</title>
+<style>
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:"Segoe UI",Roboto,sans-serif;
+    background:#0f172a;
+    color:#e2e8f0;
+    height:100vh;
+    overflow:hidden;
+    display:flex;
+    flex-direction:column;
+  }
+
+  /* Header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    background:#1e293b;
+    padding:12px 16px;
+    box-shadow:0 1px 4px rgba(0,0,0,0.4);
+  }
+  header h1{
+    font-size:16px;
+    margin:0;
+    color:#60a5fa;
+    letter-spacing:0.5px;
+  }
+  #menuBtn{
+    background:none;
+    border:none;
+    color:#60a5fa;
+    font-size:16px;
+    cursor:pointer;
+  }
+
+  /* Sidebar Drawer */
+  .sidebar{
+    position:fixed;
+    top:0;
+    left:-240px;
+    width:220px;
+    height:100%;
+    background:#1e293b;
+    box-shadow:2px 0 8px rgba(0,0,0,0.4);
+    display:flex;
+    flex-direction:column;
+    padding-top:60px;
+    transition:left 0.3s ease;
+    z-index:50;
+  }
+  .sidebar.open{left:0;}
+  .sidebar button{
+    background:none;
+    border:none;
+    color:#e2e8f0;
+    text-align:left;
+    padding:14px 20px;
+    font-size:15px;
+    cursor:pointer;
+    transition:0.2s;
+  }
+  .sidebar button:hover,.sidebar button.active{
+    background:#334155;
+    color:#60a5fa;
+  }
+
+  /* Main content */
+  .main{
+    flex:1;
+    overflow-y:auto;
+    padding:20px;
+  }
+  section{max-width:600px;margin:auto;}
+  h2{margin-top:0;color:#60a5fa;}
+  textarea{
+    width:100%;
+    min-height:130px;
+    border-radius:8px;
+    border:1px solid #334155;
+    background:#0f172a;
+    color:#e2e8f0;
+    padding:10px;
+    font-size:14px;
+    resize:vertical;
+  }
+  button.action{
+    background:#2563eb;
+    color:#fff;
+    border:none;
+    padding:8px 14px;
+    border-radius:6px;
+    cursor:pointer;
+    margin-top:8px;
+    margin-right:6px;
+  }
+  button.secondary{
+    background:#475569;
+    color:#e2e8f0;
+  }
+  .output{margin-top:12px;}
+  .stats{font-size:13px;color:#94a3b8;margin-top:6px;}
+  .hidden{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <button id="menuBtn">☰ More Tools</button>
+  <h1>Email Tools</h1>
+</header>
+
+<!-- Sidebar Drawer -->
+<div class="sidebar" id="sidebar">
+  <button class="toolBtn active" data-section="duplicates">🔁 Find Duplicates</button>
+  <button class="toolBtn" data-section="check">🔍 Check Emails</button>
+  <button class="toolBtn" data-section="unique">🧩 Unique Emails</button>
+</div>
+
+<!-- Main area -->
+<div class="main">
+  <!-- DUPLICATES -->
+  <section id="duplicates">
+    <h2>🔁 Find Duplicate Emails</h2>
+    <p>Paste your emails below to find duplicates.</p>
+    <textarea id="dupInput" placeholder="Paste all emails here..."></textarea>
+    <div>
+      <button class="action" id="findDup">Find Duplicates</button>
+      <button class="action secondary" id="copyDup">Copy</button>
+    </div>
+    <div class="output">
+      <label>Duplicate Emails:</label>
+      <textarea id="dupOutput" readonly></textarea>
+      <div class="stats" id="dupStats">Total: 0 | Duplicates: 0</div>
+    </div>
+  </section>
+
+  <!-- CHECK -->
+  <section id="check" class="hidden">
+    <h2>🔍 Check Emails in List</h2>
+    <label><b>All Emails:</b></label>
+    <textarea id="allInput" placeholder="Paste all emails here..."></textarea>
+    <label style="margin-top:8px;"><b>Check Emails:</b></label>
+    <textarea id="checkInput" placeholder="Paste emails you want to check..."></textarea>
+    <div>
+      <button class="action" id="checkBtn">Check</button>
+      <button class="action secondary" id="copyFound">Copy</button>
+    </div>
+    <div class="output">
+      <label>Found Emails:</label>
+      <textarea id="foundOutput" readonly></textarea>
+      <div class="stats" id="checkStats">Checked: 0 | Found: 0</div>
+    </div>
+  </section>
+
+  <!-- UNIQUE -->
+  <section id="unique" class="hidden">
+    <h2>🧩 Find Unique Emails (Exclude Matches)</h2>
+    <label><b>All Emails:</b></label>
+    <textarea id="uniqueAll" placeholder="Paste all emails here..."></textarea>
+    <label style="margin-top:8px;"><b>Exclude Emails:</b></label>
+    <textarea id="uniqueExclude" placeholder="Paste emails you want to exclude..."></textarea>
+    <div>
+      <button class="action" id="findUnique">Find Unique</button>
+      <button class="action secondary" id="copyUnique">Copy</button>
+    </div>
+    <div class="output">
+      <label>Unique Emails:</label>
+      <textarea id="uniqueOutput" readonly></textarea>
+      <div class="stats" id="uniqueStats">All: 0 | Unique: 0</div>
+    </div>
+  </section>
+</div>
+
+<script>
+/* --- Filter only real emails --- */
+function splitEmails(text){
+  const emailRegex=/[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const matches=text.match(emailRegex);
+  if(!matches)return[];
+  return matches.map(e=>e.trim().toLowerCase());
+}
+
+/* --- Copy helper --- */
+function copyText(txt){
+  const ta=document.createElement("textarea");
+  ta.value=txt;document.body.appendChild(ta);
+  ta.select();document.execCommand("copy");
+  document.body.removeChild(ta);
+}
+
+/* --- Sidebar toggle --- */
+const sidebar=document.getElementById("sidebar");
+document.getElementById("menuBtn").onclick=()=>sidebar.classList.toggle("open");
+
+/* --- Tool navigation --- */
+const btns=document.querySelectorAll(".toolBtn");
+const sections=document.querySelectorAll("section");
+btns.forEach(b=>{
+  b.addEventListener("click",()=>{
+    btns.forEach(x=>x.classList.remove("active"));
+    b.classList.add("active");
+    sections.forEach(s=>s.classList.add("hidden"));
+    document.getElementById(b.dataset.section).classList.remove("hidden");
+    sidebar.classList.remove("open");
+  });
+});
+
+/* --- 1️⃣ Duplicates --- */
+findDup.onclick=function(){
+  const emails=splitEmails(dupInput.value);
+  const seen=new Set(),dup=new Set();
+  for(const e of emails){if(seen.has(e))dup.add(e);else seen.add(e);}
+  const dups=[...dup];
+  dupOutput.value=dups.map((e,i)=>`${i+1}. ${e}`).join("\n");
+  dupStats.textContent=`Total: ${emails.length} | Duplicates: ${dups.length}`;
+};
+copyDup.onclick=function(){
+  if(!dupOutput.value)return alert("No duplicates found");
+  copyText(dupOutput.value);alert("Duplicates copied!");
+};
+
+/* --- 2️⃣ Check Emails --- */
+checkBtn.onclick=function(){
+  const all=new Set(splitEmails(allInput.value));
+  const check=splitEmails(checkInput.value);
+  const found=check.filter(e=>all.has(e));
+  foundOutput.value=found.map((e,i)=>`${i+1}. ${e}`).join("\n");
+  checkStats.textContent=`Checked: ${check.length} | Found: ${found.length}`;
+};
+copyFound.onclick=function(){
+  if(!foundOutput.value)return alert("No matches found");
+  copyText(foundOutput.value);alert("Matched emails copied!");
+};
+
+/* --- 3️⃣ Unique Emails --- */
+findUnique.onclick=function(){
+  const all=splitEmails(uniqueAll.value);
+  const excl=new Set(splitEmails(uniqueExclude.value));
+  const uniq=all.filter(e=>!excl.has(e));
+  uniqueOutput.value=uniq.map((e,i)=>`${i+1}. ${e}`).join("\n");
+  uniqueStats.textContent=`All: ${all.length} | Unique: ${uniq.length}`;
+};
+copyUnique.onclick=function(){
+  if(!uniqueOutput.value)return alert("No unique emails found");
+  copyText(uniqueOutput.value);alert("Unique emails copied!");
+};
+</script>
+</body>
+</html>
